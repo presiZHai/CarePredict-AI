@@ -146,10 +146,15 @@ def get_shap_explainer(model):
         _shap_explainer_cache[model_id] = shap.TreeExplainer(model)
     return _shap_explainer_cache[model_id]
 
+
 def generate_ai_explanation(prediction, confidence, top_features, reasons, suggestions):
     """Generates a detailed, structured explanation using a Generative AI model."""
     if not openrouter_api_key:
         return "GenAI explanation unavailable: API key not configured."
+
+    # --- FIX: Pre-format the strings to avoid backslash in f-string expression ---
+    reasons_str = "- " + "\n- ".join(reasons) if reasons else "None."
+    suggestions_str = "- " + "\n- ".join(suggestions) if suggestions else "None."
 
     prompt = f"""
     You are an expert AI Data Analyst for a clinical quality improvement team. Your task is to explain a client satisfaction prediction in a clear, actionable way.
@@ -166,8 +171,8 @@ def generate_ai_explanation(prediction, confidence, top_features, reasons, sugge
         {json.dumps(top_features, indent=2)}
         ```
     2.  **Qualitative Insights (from clinical rules):**
-        - **Identified Issues/Reasons:** {"- " + "\\n- ".join(reasons) if reasons else "None."}
-        - **System Suggestions:** {"- " + "\\n- ".join(suggestions) if suggestions else "None."}
+        - **Identified Issues/Reasons:** {reasons_str}
+        - **System Suggestions:** {suggestions_str}
 
     **Your Task:** Structure your response in three distinct sections using markdown:
     ### 1. Executive Summary
@@ -193,7 +198,6 @@ def generate_ai_explanation(prediction, confidence, top_features, reasons, sugge
     except Exception as e:
         logging.error(f"An unexpected error occurred in GenAI explanation: {e}")
         return f"An unexpected error occurred during GenAI explanation: {e}"
-
 
 # Main Explanation Pipeline
 def get_explanation(model, X_instance_df: pd.DataFrame, categorical_cols: list):
